@@ -99,14 +99,14 @@ func main() {
 			var path string
 			doc.Find("title").Each(func(i int, contentSelection *goquery.Selection) {
 				path = strings.Trim(contentSelection.Text(), TAIL)
-				err := os.Mkdir(path, 0777)
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-				os.Chdir(path)
 				fmt.Println(path)
 			})
+			err = os.Mkdir(path, 0777)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			os.Chdir(path)
 			doc.Find("div.tpc_content").Eq(0).Find("input").Each(func(i int, contentSelection *goquery.Selection) {
 				href, _ := contentSelection.Attr("src")
 				fmt.Println(href)
