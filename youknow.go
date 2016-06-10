@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -21,6 +23,23 @@ const (
 var (
 	mu sync.Mutex
 )
+
+func SaveImg(url string) {
+	res, err := http.Get(url)
+	defer res.Body.Close()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	filename := filepath.Base(url)
+	dst, err := os.Create(filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	io.Copy(dst, res.Body)
+}
 
 func main() {
 	fmt.Println("start crawl:" + STARTURL)
@@ -54,7 +73,15 @@ func main() {
 				ctx.Q.SendStringGet(CAOLIU + href)
 				mu.Unlock()
 			})
+			doc.Find("div.pages").Eq(0).Find("a").Each(func(i int, contentSelection *goquery.Selection) {
+				if strings.EqualFold(contentSelection.Text(), "下一頁") {
+					href, _ := contentSelection.Attr("href")
+					mu.Lock()
+					ctx.Q.SendStringGet(CAOLIU + href)
+					mu.Unlock()
 
+				}
+			})
 		}))
 
 	mux.Response().Path("/htm_data/16/1606").Handler(fetchbot.HandlerFunc(
@@ -72,13 +99,18 @@ func main() {
 			var path string
 			doc.Find("title").Each(func(i int, contentSelection *goquery.Selection) {
 				path = strings.Trim(contentSelection.Text(), TAIL)
-				os.Mkdir(path, 0777)
+				err := os.Mkdir(path, 0777)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
 				os.Chdir(path)
 				fmt.Println(path)
 			})
 			doc.Find("div.tpc_content").Eq(0).Find("input").Each(func(i int, contentSelection *goquery.Selection) {
 				href, _ := contentSelection.Attr("src")
 				fmt.Println(href)
+				SaveImg(href)
 			})
 			os.Chdir("../")
 		}))
