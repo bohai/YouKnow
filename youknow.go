@@ -26,11 +26,11 @@ var (
 
 func SaveImg(url string) {
 	res, err := http.Get(url)
-	defer res.Body.Close()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer res.Body.Close()
 
 	filename := filepath.Base(url)
 	dst, err := os.Create(filename)
