@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/PuerkitoBio/fetchbot"
 	"github.com/PuerkitoBio/goquery"
@@ -41,7 +42,7 @@ func SaveImg(url string, path string) {
 	defer res.Body.Close()
 
 	filename := filepath.Base(url)
-	dst, err := os.Create(filepath.Join(path + filename))
+	dst, err := os.Create(path + "/" + filename)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -113,9 +114,11 @@ func main() {
 				fmt.Println("Skipped", path)
 				return
 			}
+			fmt.Println("crawl", path)
 			doc.Find("div.tpc_content").Eq(0).Find("input").Each(func(i int, contentSelection *goquery.Selection) {
 				href, _ := contentSelection.Attr("src")
 				fmt.Println(href)
+				time.Sleep(1 * time.Second)
 				go SaveImg(href, filepath.Join(abspath, path))
 			})
 		}))
