@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -21,10 +22,17 @@ const (
 )
 
 var (
-	mu sync.Mutex
+	mu      sync.Mutex
+	abspath string
 )
 
-func SaveImg(url string) {
+func init() {
+	file, _ := exec.LookPath("./")
+	abspath, _ := filepath.Abs(file)
+	fmt.Println("current path is:", abspath)
+}
+
+func SaveImg(url string, path string) {
 	res, err := http.Get(url)
 	if err != nil {
 		fmt.Println(err)
@@ -33,7 +41,7 @@ func SaveImg(url string) {
 	defer res.Body.Close()
 
 	filename := filepath.Base(url)
-	dst, err := os.Create(filename)
+	dst, err := os.Create(filepath.Join(path + filename))
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -99,20 +107,17 @@ func main() {
 			var path string
 			doc.Find("title").Each(func(i int, contentSelection *goquery.Selection) {
 				path = strings.Trim(contentSelection.Text(), TAIL)
-				fmt.Println(path)
 			})
 			err = os.Mkdir(path, 0777)
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("Skipped", path)
 				return
 			}
-			os.Chdir(path)
 			doc.Find("div.tpc_content").Eq(0).Find("input").Each(func(i int, contentSelection *goquery.Selection) {
 				href, _ := contentSelection.Attr("src")
 				fmt.Println(href)
-				SaveImg(href)
+				go SaveImg(href, filepath.Join(abspath, path))
 			})
-			os.Chdir("../")
 		}))
 	f := fetchbot.New(mux)
 	q := f.Start()
